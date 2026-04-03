@@ -1,0 +1,581 @@
+;<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Value - Attendance Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+
+        :root {
+            --sv-red: #ed1c24;
+            --bg-color: radial-gradient(circle at top, #ed1c24 0%, #000000 100%);
+            --card-bg: #ffffff;
+            --header-bg: #ffffff;
+            --text-main: #1a1a1a;
+            --text-label: #444;
+            --input-bg: #fdfdfd;
+            --input-border: #eee;
+            --sidebar-bg: #1a1a1a;
+            --shadow: 0 25px 55px rgba(0,0,0,0.3), 0 8px 18px rgba(0,0,0,0.2);
+            --transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: radial-gradient(circle at top, #901115 0%, #000000 100%);
+            --card-bg: #1a1a1a;
+            --header-bg: #1a1a1a;
+            --text-main: #ffffff;
+            --text-label: #bbb;
+            --input-bg: #252525;
+            --input-border: #333;
+            --sidebar-bg: #000000;
+            --shadow: 0 30px 70px rgba(0,0,0,0.5);
+        }
+
+        body { display: none; } 
+
+        .user-profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-bottom: 20px;
+            margin-bottom: 10px;
+        }
+        .user-logo {
+            width: 50px;
+            height: 50px;
+            background: var(--sv-red);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 900;
+            text-transform: uppercase;
+            box-shadow: 0 5px 15px rgba(237, 28, 36, 0.3);
+        }
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .user-info .u-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .user-info .u-number {
+            font-size: 13px;
+            color: #bbb;
+        }
+
+        .custom-alert-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 5000;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .custom-alert {
+            background: #ffffff; width: 85%; max-width: 320px;
+            border-radius: 25px; padding: 35px 20px; text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 3px solid #ed1c24; 
+        }
+
+        .custom-alert h2 { color: #000000; margin: 0 0 10px; font-weight: 900; font-size: 24px; text-transform: uppercase; }
+        .custom-alert p { color: #444; font-size: 16px; font-weight: 700; margin-bottom: 25px; line-height: 1.5; }
+        
+        .alert-btn-container { display: flex; flex-direction: column; gap: 10px; }
+        .alert-btn {
+            background: #ed1c24; color: white; border: none; width: 100%;
+            padding: 18px; border-radius: 15px; font-weight: 700; cursor: pointer;
+            font-size: 16px; transition: 0.2s; box-shadow: 0 8px 20px rgba(237, 28, 36, 0.3);
+        }
+        .alert-btn.cancel-btn { background: #f0f0f0; border: 1px solid #ddd; color: #444; box-shadow: none; }
+        .alert-btn:active { transform: scale(0.95); }
+
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        * { -webkit-tap-highlight-color: transparent; outline: none; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg-color); 
+            background-attachment: fixed;
+            color: var(--text-main);
+            margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; transition: var(--transition);
+        }
+
+        #mainMenuBtn {
+            position: fixed; top: 25px; left: 20px; z-index: 1001; cursor: pointer;
+            background: #1a1a1a; padding: 12px; border-radius: 12px;
+            display: flex; flex-direction: column; gap: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        #mainMenuBtn.hidden-menu { display: none; }
+        #mainMenuBtn div { width: 22px; height: 3px; background: white; border-radius: 5px; }
+
+        .sidebar {
+            position: fixed; top: 0; left: -100%; width: 280px; height: 100%;
+            background: var(--sidebar-bg); z-index: 2000; color: white;
+            transition: 0.4s ease; padding: 30px 20px; display: flex; flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar.active { left: 0; }
+
+        .sidebar-header {
+            font-size: 18px; font-weight: 900; border-bottom: 3px solid #ed1c24;
+            padding-bottom: 10px; margin-bottom: 15px; text-transform: uppercase;
+            letter-spacing: 1px; color: #ffffff;
+        }
+
+        .section-label {
+            color: #ffffff; font-size: 14px; font-weight: 800; margin: 5px 0 12px;
+            text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.9;
+        }
+
+        .admin-divider { border: 0; border-top: 3px solid #ed1c24; margin: 15px 0 5px 0; width: 100%; }
+
+        .theme-box { display: flex; gap: 10px; background: #000; padding: 6px; border-radius: 14px; margin-bottom: 15px; }
+
+        .t-btn {
+            flex: 1; padding: 12px; border-radius: 10px; border: none;
+            cursor: pointer; font-weight: 700; font-size: 12px;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .t-light { background: #fff; color: #000; border: 2px solid #ed1c24; }
+        .t-dark { background: #333; color: #fff; }
+
+        .menu-btn {
+            background: rgba(255,255,255,0.08); border-radius: 14px;
+            padding: 16px; margin-bottom: 10px; display: flex;
+            align-items: center; gap: 15px; cursor: pointer;
+            font-size: 14px; font-weight: 600; transition: 0.2s;
+            color: white; border: none; width: 100%; text-align: left;
+        }
+        .menu-btn:active { background: #ed1c24; }
+
+        .logout-section { margin-top: auto; background: rgba(237, 28, 36, 0.15); color: #ff4d4d; border: 1px solid rgba(237, 28, 36, 0.3); }
+
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; z-index: 1000; backdrop-filter: blur(5px); }
+        .overlay.active { display: block; }
+
+        .app-container {
+            background: var(--card-bg); width: 100%; max-width: 400px; border-radius: 40px;
+            box-shadow: var(--shadow); overflow: hidden; position: relative;
+            animation: slideUpMain 0.8s ease-out; transition: var(--transition);
+        }
+
+        .header { background: var(--header-bg); padding: 40px 20px 25px; text-align: center; position: relative; transition: var(--transition); }
+        .header h1 { margin: 0; font-size: 32px; font-weight: 900; color: var(--text-main); letter-spacing: -1px; text-transform: uppercase; }
+        .header h1 span { color: var(--sv-red); }
+        .header p { margin: 5px 0 0; font-size: 12px; color: #666; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+
+        .form-content { padding: 30px; }
+        .form-section { margin-bottom: 20px; animation: fadeInItem 0.5s ease-out forwards; opacity: 1; }
+        label { display: block; margin-bottom: 10px; font-weight: 700; font-size: 11px; color: var(--text-label); text-transform: uppercase; letter-spacing: 1px; }
+        input, select {
+            width: 100%; padding: 16px; border: 2px solid var(--input-border); border-radius: 15px;
+            font-size: 15px; outline: none; box-sizing: border-box; background: var(--input-bg); 
+            color: var(--text-main); transition: var(--transition); font-family: inherit;
+        }
+        input:focus { border-color: var(--sv-red); }
+        
+        .dd-card-box {
+            background: rgba(0,0,0,0.03); border: 2px dashed #ddd;
+            padding: 15px; border-radius: 18px; margin-top: 15px;
+            animation: fadeInItem 0.3s ease;
+        }
+        [data-theme="dark"] .dd-card-box { background: rgba(255,255,255,0.03); border-color: #333; }
+
+        button#submitBtn {
+            width: 100%; padding: 20px; background: var(--sv-red); color: white;
+            border: none; border-radius: 18px; font-weight: 900; font-size: 16px;
+            cursor: pointer; text-transform: uppercase; transition: 0.3s; margin-top: 10px;
+            box-shadow: 0 12px 25px rgba(237, 28, 36, 0.3);
+        }
+        button#submitBtn:disabled { background: #555 !important; cursor: not-allowed; box-shadow: none; opacity: 0.6; }
+        
+        #successOverlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--card-bg); z-index: 2000; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .hidden { display: none !important; }
+        @keyframes slideUpMain { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeInItem { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body data-theme="light">
+
+<div class="custom-alert-overlay" id="alertOverlay">
+    <div class="custom-alert">
+        <h2 id="alertTitle">Alert</h2>
+        <p id="alertMsg"></p>
+        <div class="alert-btn-container" id="alertBtnGroup"></div>
+    </div>
+</div>
+
+<audio id="successSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+<div id="mainMenuBtn" onclick="toggleSidebar()"><div></div><div></div><div></div></div>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar" id="sidebar">
+    <div class="user-profile-header">
+        <div class="user-logo" id="userInitial">?</div>
+        <div class="user-info">
+            <div class="u-name" id="sideUserName">Connecting...</div>
+            <div class="u-number" id="sideUserPhone">Connecting...</div>
+        </div>
+    </div>
+
+    <div class="sidebar-header">SETTING & ADMIN</div>
+    <div class="section-label">SETTING...</div>
+    <div class="theme-box">
+        <button class="t-btn t-light" onclick="setTheme('light')">☀️ LIGHT</button>
+        <button class="t-btn t-dark" onclick="setTheme('dark')">🌙 DARK</button>
+    </div>
+    <div class="menu-btn" onclick="showPopup('Update', 'Coming Soon!')">🔒 Lock (On/Off)</div>
+    <div class="menu-btn" onclick="openShareMenu()">📤 Share App..</div>
+    <hr class="admin-divider">
+    <div class="section-label">CONTACT ADMIN..</div>
+    <div class="menu-btn" onclick="openSocialLink('https://wa.link/jv4jko')">📲 WhatsApp Admin</div>
+    <div class="menu-btn" onclick="openSocialLink('https://www.facebook.com/share/1CTVQUDsdF/')">👤 Facebook Profile</div>
+    <div class="menu-btn" onclick="openSocialLink('https://www.instagram.com/rjn__here')">📸 Instagram Feed</div>
+    <div class="menu-btn logout-section" onclick="handleLogout()">🚪 Logout</div>
+</div>
+
+<div class="app-container">
+    <div id="successOverlay">
+        <div style="background: #2ecc71; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;"><span style="font-size: 50px; color: white;">✓</span></div>
+        <div style="font-weight:900; font-size:20px;">SUBMITTED!</div>
+    </div>
+    
+    <div class="header">
+        <h1><span>SMART</span> VALUE</h1>
+        <p>Attendance System</p>
+    </div>
+
+    <div class="form-content">
+        <div class="form-section"><label>👤 Full Name</label><input type="text" id="empName" placeholder="Auto-filling..." readonly></div>
+        <div class="form-section">
+            <label>📋 Report Type</label>
+            <select id="reportType" onchange="updateUI()">
+                <option value="">-- Choose Category --</option>
+                <option value="entry">Office Entry</option>
+                <option value="exit">Office Exit</option>
+                <option value="work">Today's Work Report</option>
+            </select>
+        </div>
+
+        <div id="entrySection" class="hidden">
+            <div style="text-align: center; padding: 20px; font-weight: 700; color: #666;">
+                Click "Submit Report" to mark your Entry.
+            </div>
+        </div>
+        
+        <div id="exitSection" class="hidden">
+            <div class="form-section"><label>✅ Total CNFRM</label><input type="number" id="exitCV" placeholder="0"></div>
+            <hr style="border: 1px dashed #ed1c24; margin: 20px 0;">
+            <div style="font-weight:900; font-size:12px; color:var(--sv-red); margin-bottom:15px; text-transform:uppercase; text-align:center;">--- Tomorrow Target ---</div>
+            <div class="form-section"><label>🤝 Friend Request</label><input type="number" id="targetFR" placeholder="0"></div>
+            <div class="form-section"><label>📩 Message</label><input type="number" id="targetSMS" placeholder="0"></div>
+            <div class="form-section"><label>💬 Chatting</label><input type="number" id="targetChat" placeholder="0"></div>
+            <div class="form-section"><label>🗣️ Work Discuss (K.K)</label><input type="number" id="targetKK" placeholder="0"></div>
+            <div class="form-section"><label>📱 Mobile</label><input type="number" id="targetMobile" placeholder="0"></div>
+            <div class="form-section"><label>💌 Invite</label><input type="number" id="targetInvite" placeholder="0"></div>
+            <div class="form-section"><label>✅ CNFRM</label><input type="number" id="targetCV" placeholder="0"></div>
+        </div>
+
+        <div id="workSection" class="hidden">
+            <div class="form-section"><label>📅 Date</label><input type="date" id="wr_date"></div>
+            <div class="form-section"><label>🤝 Friend Request</label><input type="number" id="wr_fr" placeholder="0"></div>
+            <div class="form-section"><label>✔️ Accept</label><input type="number" id="wr_acp" placeholder="0"></div>
+            <div class="form-section"><label>📩 Message</label><input type="number" id="wr_sms" placeholder="0"></div>
+            <div class="form-section"><label>↩️ Reply</label><input type="number" id="wr_reply" placeholder="0"></div>
+            <div class="form-section"><label>💬 Chating</label><input type="number" id="wr_chat" placeholder="0"></div>
+            <div class="form-section"><label>🗣️ Discuss Work (K.K)</label><input type="number" id="wr_kk" placeholder="0"></div>
+            <div class="form-section">
+                <label>📱 Mobile Number</label>
+                <select id="wr_mobile">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                </select>
+            </div>
+            <div class="form-section">
+                <label>💌 Invitation</label>
+                <select id="wr_invite">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                </select>
+            </div>
+            <div class="form-section">
+                <label>✅ CNFRM</label>
+                <select id="wr_cnfrm">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                </select>
+            </div>
+            <div class="form-section">
+                <label>🚀 STP</label>
+                <select id="wr_stp">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                </select>
+            </div>
+            <div class="form-section">
+                <label>🔄 Follow Up</label>
+                <select id="wr_fup">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                </select>
+            </div>
+            <div class="form-section">
+                <label>💳 Enrollment (D.D) Count (0-5)</label>
+                <select id="ddSelect" onchange="generateDDFields()">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                </select>
+            </div>
+            <div id="ddContainer"></div>
+        </div>
+
+        <button id="submitBtn" onclick="handleSave()">Submit Report</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCKeK1SURytWc4-ypfOWvhdfah5Ygqp3Ck",
+        authDomain: "office-attendance-39dd5.firebaseapp.com",
+        projectId: "office-attendance-39dd5",
+        storageBucket: "office-attendance-39dd5.firebasestorage.app",
+        messagingSenderId: "920822975843",
+        appId: "1:920822975843:web:f38e51db3bd6f7af42d756"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            localStorage.setItem('sv_user_logged_in', 'true');
+            try {
+                const userRef = doc(db, "Users", user.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    const fullName = userData.fullName || "User";
+                    const phone = userData.mobileNumber || userData.phoneNumber || userData.phone || "No Number";
+                    document.getElementById('empName').value = fullName;
+                    document.getElementById('userInitial').innerText = fullName.charAt(0);
+                    document.getElementById('sideUserName').innerText = fullName;
+                    document.getElementById('sideUserPhone').innerText = phone;
+                    document.body.style.display = "flex"; 
+                } else {
+                    document.getElementById('sideUserName').innerText = user.displayName || "User";
+                    document.getElementById('sideUserPhone').innerText = user.phoneNumber || "No Number";
+                    document.body.style.display = "flex";
+                }
+            } catch (err) {
+                console.error("Profile Load Error:", err);
+                document.body.style.display = "flex";
+            }
+        } else {
+            localStorage.removeItem('sv_user_logged_in');
+            window.location.href = "index.html"; 
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedTheme = localStorage.getItem('appTheme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+        if(localStorage.getItem('sv_user_logged_in') === 'true') {
+            document.body.style.display = "flex";
+        }
+    });
+
+    window.setTheme = (mode) => {
+        document.body.setAttribute('data-theme', mode);
+        localStorage.setItem('appTheme', mode);
+        toggleSidebar();
+    };
+
+    window.toggleSidebar = () => {
+        document.getElementById('sidebar').classList.toggle('active');
+        document.getElementById('overlay').classList.toggle('active');
+    };
+
+    window.showPopup = (title, msg, type = 'alert') => {
+        document.getElementById('alertTitle').innerText = title;
+        document.getElementById('alertMsg').innerText = msg;
+        const group = document.getElementById('alertBtnGroup');
+        group.innerHTML = '';
+        if(type === 'confirm') {
+            const okBtn = document.createElement('button');
+            okBtn.className = 'alert-btn';
+            okBtn.innerText = 'OK';
+            okBtn.onclick = () => window.handleConfirmLogout();
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'alert-btn cancel-btn';
+            cancelBtn.innerText = 'CANCEL';
+            cancelBtn.onclick = () => closePopup();
+            group.appendChild(okBtn);
+            group.appendChild(cancelBtn);
+        } else if (type === 'share') {
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'alert-btn';
+            copyBtn.innerText = 'Click to Copy';
+            copyBtn.onclick = () => executeCopy();
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'alert-btn cancel-btn';
+            closeBtn.innerText = 'CLOSE';
+            closeBtn.onclick = () => closePopup();
+            group.appendChild(copyBtn);
+            group.appendChild(closeBtn);
+        } else {
+            const okBtn = document.createElement('button');
+            okBtn.className = 'alert-btn';
+            okBtn.innerText = 'OK';
+            okBtn.onclick = () => closePopup();
+            group.appendChild(okBtn);
+        }
+        document.getElementById('alertOverlay').style.display = 'flex';
+    };
+
+    window.closePopup = () => { document.getElementById('alertOverlay').style.display = 'none'; };
+    window.openShareMenu = () => { showPopup('Share App', '', 'share'); };
+    window.openSocialLink = (url) => {
+        showPopup('Please Wait...', 'Redirecting...', 'loading');
+        setTimeout(() => { closePopup(); window.open(url, '_blank'); }, 1200);
+    };
+
+    window.executeCopy = () => {
+        const appLink = "https://attendance-system-pro.web.app";
+        const textArea = document.createElement("textarea");
+        textArea.value = appLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            closePopup();
+            setTimeout(() => { showPopup('Success', 'Link Copied!'); }, 300);
+        } catch (err) { alert("Copy failed: " + err); }
+        document.body.removeChild(textArea);
+    };
+
+    window.updateUI = () => {
+        const type = document.getElementById('reportType').value;
+        const menuBtn = document.getElementById('mainMenuBtn');
+        ['entrySection', 'exitSection', 'workSection'].forEach(s => document.getElementById(s).classList.add('hidden'));
+        if(type === 'work' || type === 'exit') {
+            menuBtn.classList.add('hidden-menu');
+            if(type === 'work') {
+                document.getElementById('workSection').classList.remove('hidden');
+                document.getElementById('wr_date').valueAsDate = new Date();
+            } else {
+                document.getElementById('exitSection').classList.remove('hidden');
+            }
+        } else {
+            menuBtn.classList.remove('hidden-menu');
+            if(type) document.getElementById(type + 'Section').classList.remove('hidden');
+        }
+    };
+
+    window.generateDDFields = () => {
+        const count = document.getElementById('ddSelect').value;
+        const container = document.getElementById('ddContainer');
+        container.innerHTML = ""; 
+        for(let i=1; i<=count; i++) {
+            container.innerHTML += `
+            <div class="dd-card-box">
+                <label style="color:#2ecc71;">👤 Enrollment Name ${i}</label>
+                <input type="text" class="dd-name" placeholder="Enter Name">
+                <label style="margin-top:10px; color:#f1c40f;">💰 Amount</label>
+                <input type="number" class="dd-amount" placeholder="0">
+            </div>`;
+        }
+    };
+
+    window.handleSave = async () => {
+        const btn = document.getElementById('submitBtn');
+        const name = document.getElementById('empName').value;
+        const type = document.getElementById('reportType').value;
+        if(!name || !type) return showPopup('Error', 'Naam aur type bharna zaroori hai!');
+        btn.disabled = true;
+        btn.innerText = "SUBMITTING...";
+        try {
+            let reportData = {
+                employeeName: name,
+                reportType: type,
+                timestamp: serverTimestamp()
+            };
+            if (type === 'entry') {
+                // Entry marked without additional fields
+            } else if (type === 'exit') {
+                reportData.cnfrmCount = document.getElementById('exitCV').value || 0;
+                reportData.targetFR = document.getElementById('targetFR').value || 0;
+                reportData.targetSMS = document.getElementById('targetSMS').value || 0;
+                reportData.targetChat = document.getElementById('targetChat').value || 0;
+                reportData.targetKK = document.getElementById('targetKK').value || 0;
+                reportData.targetMobile = document.getElementById('targetMobile').value || 0;
+                reportData.targetInvite = document.getElementById('targetInvite').value || 0;
+                reportData.targetCV = document.getElementById('targetCV').value || 0;
+            } else if (type === 'work') {
+                reportData.wr_date = document.getElementById('wr_date').value;
+                reportData.wr_fr = document.getElementById('wr_fr').value || 0;
+                reportData.wr_acp = document.getElementById('wr_acp').value || 0;
+                reportData.wr_sms = document.getElementById('wr_sms').value || 0;
+                reportData.wr_rep = document.getElementById('wr_reply').value || 0;
+                reportData.wr_ch = document.getElementById('wr_chat').value || 0;
+                reportData.wr_kk = document.getElementById('wr_kk').value || 0;
+                reportData.wr_mob = document.getElementById('wr_mobile').value || 0;
+                reportData.wr_in = document.getElementById('wr_invite').value || 0;
+                reportData.wr_cnfrm = document.getElementById('wr_cnfrm').value || 0;
+                reportData.wr_stp = document.getElementById('wr_stp').value || 0;
+                reportData.wr_fup = document.getElementById('wr_fup').value || 0;
+                const ddNames = document.querySelectorAll('.dd-name');
+                const ddAmounts = document.querySelectorAll('.dd-amount');
+                reportData.ddRecords = [];
+                ddNames.forEach((input, index) => {
+                    reportData.ddRecords.push({
+                        name: input.value || "No Name",
+                        amount: ddAmounts[index].value || 0
+                    });
+                });
+            }
+            await addDoc(collection(db, "Attendance"), reportData);
+            try { await document.getElementById('successSound').play(); } catch(e) {}
+            document.getElementById('successOverlay').style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('successOverlay').style.display = 'none';
+                document.getElementById('reportType').value = "";
+                updateUI();
+                btn.disabled = false;
+                btn.innerText = "Submit Report";
+                const inputs = document.querySelectorAll('input:not(#empName)');
+                inputs.forEach(input => input.value = "");
+                if(document.getElementById('ddContainer')) {
+                    document.getElementById('ddContainer').innerHTML = "";
+                    document.getElementById('ddSelect').value = "0";
+                }
+            }, 2000);
+        } catch (e) { 
+            showPopup('Error', 'Failed: ' + e.message);
+            btn.disabled = false;
+            btn.innerText = "Submit Report";
+        }
+    };
+
+    window.handleLogout = () => { showPopup('Confirm', 'Logout?', 'confirm'); };
+    window.handleConfirmLogout = () => {
+        localStorage.removeItem('sv_user_logged_in');
+        signOut(auth).then(() => { window.location.href = "index.html"; });
+    };
+</script>
+</body>
+</html>
