@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SV - Auth System Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&display=swap');
+        
+        :root { --primary-red: #ed1c24; --card-bg: #ffffff; }
+
+        body { 
+            margin: 0; font-family: 'Montserrat', sans-serif; 
+            background: #000; height: 100vh; overflow: hidden;
+            display: flex; justify-content: center; align-items: center; 
+            background-image: linear-gradient(135deg, #ed1c24 0%, #000 100%);
+        }
+
+        .zoom-in { animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes zoomIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .auth-card { 
+            display: none; 
+            background: var(--card-bg); padding: 35px 25px; border-radius: 25px; 
+            width: 88%; max-width: 380px; border: 2px solid #ffffff; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4); text-align: center; box-sizing: border-box;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        }
+
+        .logo-h1 { font-weight: 900; font-size: 26px; margin-bottom: 30px; white-space: nowrap; margin-top: 0; }
+        .logo-h1 span.red-text { color: var(--primary-red); }
+        .logo-h1 span.black-text { color: #000000; }
+
+        .input-box { position: relative; margin-bottom: 15px; }
+        .input-box input { 
+            width: 100%; padding: 16px; padding-right: 45px; border-radius: 12px; border: 2px solid #ddd;
+            background: #f9f9f9; color: #000; font-family: 'Montserrat';
+            font-weight: 700; font-size: 16px; outline: none; box-sizing: border-box;
+        }
+        .eye-toggle {
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            cursor: pointer; font-size: 18px; opacity: 0.6;
+        }
+
+        .forgot-link {
+            display: block; text-align: right; margin: -5px 5px 15px 0;
+            font-size: 13px; font-weight: 800; color: #666;
+            cursor: pointer; transition: 0.3s; text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .forgot-link:hover { color: var(--primary-red); }
+
+        .btn-main { 
+            width: 100%; padding: 16px; border-radius: 12px; border: none; 
+            background: var(--primary-red); color: white; font-weight: 900; 
+            font-size: 16px; text-transform: uppercase; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(237, 28, 36, 0.4); margin-top: 10px;
+        }
+        .btn-main:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .link-text { margin-top: 20px; color: #444; font-size: 14px; font-weight: 700; white-space: nowrap; }
+        .link-text b { color: var(--primary-red); cursor: pointer; margin-left: 5px; text-decoration: underline; }
+        
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .popup { 
+            background: white; padding: 30px; border-radius: 20px; text-align: center; width: 280px; 
+            border: 3px solid var(--primary-red);
+            animation: popupZoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popupZoomIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .overlay.active { display: flex; }
+    </style>
+</head>
+<body>
+
+<div class="auth-card" id="login-screen">
+    <div class="logo-h1"><span class="red-text">SMART</span> <span class="black-text">VALUE</span></div>
+    <div class="input-box">
+        <input type="tel" id="l-mob" placeholder="Mobile Number" maxlength="10" inputmode="numeric">
+    </div>
+    <div class="input-box">
+        <input type="password" id="l-pass" placeholder="Password" maxlength="6" inputmode="numeric">
+        <span class="eye-toggle" onclick="togglePass('l-pass')">👁️</span>
+    </div>
+    <span class="forgot-link" onclick="handleForgot()">Forgot Password?</span>
+    <button class="btn-main" id="l-btn" onclick="handleLogin()">Login Now</button>
+    <div class="link-text">Don't have an account? <b onclick="switchScreen('signup-screen')">Sign up</b></div>
+</div>
+
+<div class="auth-card" id="signup-screen">
+    <div class="logo-h1"><span class="red-text">SMART</span> <span class="black-text">VALUE</span></div>
+    <div class="input-box"><input type="text" id="s-name" placeholder="Your Name"></div>
+    <div class="input-box"><input type="tel" id="s-mob" placeholder="Mobile Number" maxlength="10" inputmode="numeric"></div>
+    <div class="input-box">
+        <input type="password" id="s-pass" placeholder="Create Password" maxlength="6" inputmode="numeric">
+        <span class="eye-toggle" onclick="togglePass('s-pass')">👁️</span>
+    </div>
+    <div class="input-box">
+        <input type="password" id="s-cpass" placeholder="Confirm Password" maxlength="6" inputmode="numeric">
+        <span class="eye-toggle" onclick="togglePass('s-cpass')">👁️</span>
+    </div>
+    <button class="btn-main" id="s-btn" onclick="handleSignup()">Create Account</button>
+    <div class="link-text">Already have an account? <b onclick="switchScreen('login-screen')">Login</b></div>
+</div>
+
+<div class="overlay" id="popup-overlay">
+    <div class="popup">
+        <h2 style="color:#000; margin:0; text-transform: uppercase; font-size: 20px;" id="p-title">SUCCESSFUL</h2>
+        <p style="color:#444; font-weight: 700; margin: 20px 0;" id="p-msg">Action Successful</p>
+        <button class="btn-main" id="p-btn" onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCKeK1SURytWc4-ypfOWvhdfah5Ygqp3Ck",
+        authDomain: "office-attendance-39dd5.firebaseapp.com",
+        projectId: "office-attendance-39dd5",
+        storageBucket: "office-attendance-39dd5.firebasestorage.app",
+        messagingSenderId: "920822975843",
+        appId: "1:920822975843:web:f38e51db3bd6f7af42d756"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let isManualAction = false; // To prevent auto-redirect during login/signup button clicks
+
+    onAuthStateChanged(auth, (user) => {
+        if (user && !isManualAction) {
+            window.location.href = "dashboard.html";
+        } else if (!user) {
+            const loginScr = document.getElementById('login-screen');
+            loginScr.style.display = 'block';
+            loginScr.classList.add('zoom-in');
+        }
+    });
+
+    let redirectTarget = null;
+
+    window.switchScreen = (id) => {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('signup-screen').style.display = 'none';
+        const nextScreen = document.getElementById(id);
+        nextScreen.style.display = 'block';
+        nextScreen.classList.remove('zoom-in');
+        void nextScreen.offsetWidth;
+        nextScreen.classList.add('zoom-in');
+    };
+
+    window.togglePass = (id) => {
+        const x = document.getElementById(id);
+        x.type = x.type === "password" ? "text" : "password";
+    };
+
+    function setupInputLogic(id, len, nextId) {
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if(this.value.length === len) {
+                this.blur();
+                if(nextId) document.getElementById(nextId).focus();
+            }
+        });
+    }
+
+    setupInputLogic('l-mob', 10, 'l-pass');
+    setupInputLogic('l-pass', 6, null);
+    setupInputLogic('s-mob', 10, 's-pass');
+    setupInputLogic('s-pass', 6, 's-cpass');
+    setupInputLogic('s-cpass', 6, null);
+
+    window.showPopup = (title, msg, target = null) => {
+        document.getElementById('p-title').innerText = title;
+        document.getElementById('p-msg').innerText = msg;
+        document.getElementById('popup-overlay').classList.add('active');
+        redirectTarget = target;
+    };
+
+    window.closePopup = () => {
+        document.getElementById('popup-overlay').classList.remove('active');
+        if(redirectTarget === 'toLogin') {
+            isManualAction = false;
+            switchScreen('login-screen');
+        }
+        if(redirectTarget === 'toDashboard') {
+            isManualAction = false;
+            window.location.href = "dashboard.html";
+        }
+    };
+
+    window.handleLogin = async () => {
+        const mob = document.getElementById('l-mob').value;
+        const pass = document.getElementById('l-pass').value;
+        const btn = document.getElementById('l-btn');
+
+        if(mob.length === 10 && pass.length === 6) {
+            isManualAction = true; // Stop auto-redirect to show popup
+            btn.disabled = true;
+            btn.innerText = "Checking...";
+            const email = mob + "@sv.com";
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                showPopup("LOGIN SUCCESSFUL", "Welcome to Smart Value", "toDashboard");
+            } catch (error) {
+                showPopup("ERROR", "Invalid Mobile Number or Password");
+                btn.disabled = false;
+                btn.innerText = "Login Now";
+                isManualAction = false;
+            }
+        } else {
+            showPopup("ERROR", "Please enter valid 10-digit Mobile and 6-digit Password");
+        }
+    };
+
+    window.handleSignup = async () => {
+        const name = document.getElementById('s-name').value;
+        const mob = document.getElementById('s-mob').value;
+        const pass = document.getElementById('s-pass').value;
+        const cpass = document.getElementById('s-cpass').value;
+        const btn = document.getElementById('s-btn');
+
+        if(name === "" || mob === "" || pass === "" || cpass === "") {
+            showPopup("REQUIRED", "Please fill all details");
+        } else if(mob.length < 10) {
+            showPopup("ERROR", "Please enter a valid 10-digit mobile number");
+        } else if(pass !== cpass) {
+            showPopup("ERROR", "Confirm password is not the same");
+        } else {
+            isManualAction = true; // Stop auto-redirect
+            btn.disabled = true;
+            btn.innerText = "Creating...";
+            const email = mob + "@sv.com";
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                const user = userCredential.user;
+                
+                // SAVE DATA FIRST
+                await setDoc(doc(db, "Users", user.uid), {
+                    fullName: name,
+                    mobileNumber: mob,
+                    phoneNumber: mob,
+                    createdAt: new Date().toISOString()
+                });
+
+                showPopup("SUCCESSFUL", "Account created! Please login now.", "toLogin");
+                // Logout immediately after signup to force clean login
+                await signOut(auth); 
+                btn.disabled = false;
+                btn.innerText = "Create Account";
+            } catch (error) {
+                showPopup("ERROR", "Signup Failed or Mobile already registered.");
+                btn.disabled = false;
+                btn.innerText = "Create Account";
+                isManualAction = false;
+            }
+        }
+    };
+
+    window.handleForgot = () => {
+        showPopup("FORGOT PASSWORD", "Please contact your Admin to reset password.");
+    };
+</script>
+
+</body>
+</html>
