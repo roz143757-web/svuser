@@ -552,11 +552,12 @@
 
     // --- NOTIFICATION FUNCTION START ---
     async function sendPushNotification(userName, type) {
-        const scriptURL = "https://script.google.com/macros/s/AKfycbx8PcqTLwFlKuIjxeHwdCLUvB98Oi43giGXuoJOZOOxarglkkVZy4mc3ssda70H9YTn/exec";
+        // Bhai, yahan maine aapka naya URL update kar diya hai
+        const scriptURL = "https://script.google.com/macros/s/AKfycbwlAKPAxhbCqgniE3V9Ct7i057I6-BOvBKBet-_PEeBtELK8kJjv091nglGu4lnhyRJ/exec";
         try {
             fetch(scriptURL, {
                 method: "POST",
-                mode: "no-cors", // Zaroori hai Google Scripts ke liye
+                mode: "no-cors", 
                 cache: "no-cache",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ userName: userName, reportType: type })
@@ -612,7 +613,6 @@
                 });
             }
             
-            // Firebase mein data save kar rahe hain
             await addDoc(collection(db, "Attendance"), reportData);
             
             // Notification bhej rahe hain
