@@ -1,4 +1,4 @@
-;<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -230,7 +230,7 @@
         <div class="user-logo" id="userInitial">?</div>
         <div class="user-info">
             <div class="u-name" id="sideUserName">Connecting...</div>
-            <div class="u-number" id="sideUserPhone">Connecting...</div>
+            <div class="u-name" id="sideUserPhone">Connecting...</div>
         </div>
     </div>
 
@@ -361,9 +361,13 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
+    const CURRENT_APP_VERSION = "1.0"; 
+    const MY_APP_LINK = "https://roz143757-web.github.io/svuser/";
+
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             localStorage.setItem('sv_user_logged_in', 'true');
+            checkAppUpdate(); 
             try {
                 const userRef = doc(db, "Users", user.uid);
                 const userSnap = await getDoc(userRef);
@@ -390,6 +394,65 @@
             window.location.href = "index.html"; 
         }
     });
+
+    async function checkAppUpdate() {
+        try {
+            const configRef = doc(db, "AppConfig", "settings");
+            const configSnap = await getDoc(configRef);
+            if (configSnap.exists()) {
+                const latestVersion = configSnap.data().version;
+                if (latestVersion !== CURRENT_APP_VERSION) {
+                    showUpdatePopup(MY_APP_LINK);
+                }
+            }
+        } catch (e) { console.log("Update check failed", e); }
+    }
+
+    function showUpdatePopup(url) {
+        document.getElementById('alertTitle').innerText = "UPDATE AVAILABLE!";
+        document.getElementById('alertMsg').innerText = "A new version is available. Please update to continue using the app.";
+        const group = document.getElementById('alertBtnGroup');
+        group.innerHTML = '';
+        const upBtn = document.createElement('button');
+        upBtn.className = 'alert-btn';
+        upBtn.innerText = 'UPDATE NOW';
+        upBtn.onclick = () => window.location.href = url;
+        group.appendChild(upBtn);
+        document.getElementById('alertOverlay').style.display = 'flex';
+        document.getElementById('alertOverlay').onclick = (e) => e.stopPropagation(); 
+    }
+
+    window.openShareMenu = async () => {
+        const shareData = {
+            title: 'Smart Value - Attendance Pro',
+            text: 'Bhai, ye professional Attendance App check karo!',
+            url: MY_APP_LINK
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                showPopup('Share App', 'Copy or Share from below:', 'share');
+            }
+        } else {
+            showPopup('Share App', 'Copy link to share with friends:', 'share');
+        }
+    };
+
+    window.executeCopy = () => {
+        const appLink = MY_APP_LINK;
+        const textArea = document.createElement("textarea");
+        textArea.value = appLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            closePopup();
+            setTimeout(() => { showPopup('Success', 'Link Copy Ho Gaya Hai!'); }, 300);
+        } catch (err) { alert("Copy failed: " + err); }
+        document.body.removeChild(textArea);
+    };
 
     document.addEventListener('DOMContentLoaded', () => {
         const savedTheme = localStorage.getItem('appTheme') || 'light';
@@ -448,24 +511,10 @@
     };
 
     window.closePopup = () => { document.getElementById('alertOverlay').style.display = 'none'; };
-    window.openShareMenu = () => { showPopup('Share App', '', 'share'); };
+    
     window.openSocialLink = (url) => {
         showPopup('Please Wait...', 'Redirecting...', 'loading');
         setTimeout(() => { closePopup(); window.open(url, '_blank'); }, 1200);
-    };
-
-    window.executeCopy = () => {
-        const appLink = "https://attendance-system-pro.web.app";
-        const textArea = document.createElement("textarea");
-        textArea.value = appLink;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            closePopup();
-            setTimeout(() => { showPopup('Success', 'Link Copied!'); }, 300);
-        } catch (err) { alert("Copy failed: " + err); }
-        document.body.removeChild(textArea);
     };
 
     window.updateUI = () => {
@@ -501,6 +550,21 @@
         }
     };
 
+    // --- NOTIFICATION FUNCTION START ---
+    async function sendPushNotification(userName, type) {
+        const scriptURL = "https://script.google.com/macros/s/AKfycbx8PcqTLwFlKuIjxeHwdCLUvB98Oi43giGXuoJOZOOxarglkkVZy4mc3ssda70H9YTn/exec";
+        try {
+            fetch(scriptURL, {
+                method: "POST",
+                mode: "no-cors", // Zaroori hai Google Scripts ke liye
+                cache: "no-cache",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userName: userName, reportType: type })
+            });
+        } catch (e) { console.log("Push error:", e); }
+    }
+    // --- NOTIFICATION FUNCTION END ---
+
     window.handleSave = async () => {
         const btn = document.getElementById('submitBtn');
         const name = document.getElementById('empName').value;
@@ -515,7 +579,6 @@
                 timestamp: serverTimestamp()
             };
             if (type === 'entry') {
-                // Entry marked without additional fields
             } else if (type === 'exit') {
                 reportData.cnfrmCount = document.getElementById('exitCV').value || 0;
                 reportData.targetFR = document.getElementById('targetFR').value || 0;
@@ -548,7 +611,13 @@
                     });
                 });
             }
+            
+            // Firebase mein data save kar rahe hain
             await addDoc(collection(db, "Attendance"), reportData);
+            
+            // Notification bhej rahe hain
+            sendPushNotification(name, type);
+
             try { await document.getElementById('successSound').play(); } catch(e) {}
             document.getElementById('successOverlay').style.display = 'flex';
             setTimeout(() => {
